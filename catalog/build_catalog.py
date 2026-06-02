@@ -137,6 +137,10 @@ def safe_query(cursor, sql: str, params=None) -> List[Any]:
         return cursor.fetchall()
     except Exception as e:
         console.print(f"[yellow]Query warning: {e}[/yellow]")
+        try:
+            cursor.execute("ROLLBACK")
+        except Exception:
+            pass
         return []
 
 # =============================================================================
@@ -353,7 +357,7 @@ class PostgreSQLCatalogExtractor:
 
         # Build a single query for all nullable columns
         null_checks = ", ".join([
-            f"ROUND(100.0 * SUM(CASE WHEN {col} IS NULL THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 2) AS \"{col}_null_pct\""
+            f'ROUND(100.0 * SUM(CASE WHEN \"{col}\" IS NULL THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 2) AS \"{col}_null_pct\"'
             for col in nullable_cols[:10]  # Limit to 10 columns to avoid query size issues
         ])
 

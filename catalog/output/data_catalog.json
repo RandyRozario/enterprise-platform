@@ -1,0 +1,1210 @@
+{
+  "database_name": "multitenant_db",
+  "host": "localhost",
+  "port": 5432,
+  "version": "PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0",
+  "schema_count": 1,
+  "table_count": 7,
+  "total_rows": -7,
+  "total_size_bytes": 401408,
+  "total_size_human": "392.0 KB",
+  "tables": [
+    {
+      "schema": "public",
+      "name": "_prisma_migrations",
+      "full_name": "public._prisma_migrations",
+      "row_count": -1,
+      "size_bytes": 32768,
+      "size_human": "32.0 KB",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": 36,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": true,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "checksum",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": 64,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "finished_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "migration_name",
+          "data_type": "character varying",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "logs",
+          "data_type": "text",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "rolled_back_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "started_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": false,
+          "default_value": "now()",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "applied_steps_count",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default_value": "0",
+          "max_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "_prisma_migrations_pkey",
+          "columns": [
+            "id"
+          ],
+          "is_unique": true,
+          "is_primary": true,
+          "index_type": "btree"
+        }
+      ],
+      "rls_enabled": false,
+      "rls_policies": [],
+      "has_tenant_id": false,
+      "created_at": null,
+      "description": null,
+      "sample_row_count": 0,
+      "null_percentage": {
+        "finished_at": 0.0,
+        "logs": 100.0,
+        "rolled_back_at": 100.0
+      }
+    },
+    {
+      "schema": "public",
+      "name": "audit_logs",
+      "full_name": "public.audit_logs",
+      "row_count": -1,
+      "size_bytes": 32768,
+      "size_human": "32.0 KB",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": "gen_random_uuid()",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": true,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "tenantId",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": true,
+          "references_table": "tenants",
+          "references_column": "id",
+          "description": null
+        },
+        {
+          "name": "action",
+          "data_type": "text",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "entityType",
+          "data_type": "text",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "entityId",
+          "data_type": "text",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "actorId",
+          "data_type": "text",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "ipAddress",
+          "data_type": "text",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "userAgent",
+          "data_type": "text",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "metadata",
+          "data_type": "jsonb",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "createdAt",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default_value": "CURRENT_TIMESTAMP",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "audit_logs_pkey",
+          "columns": [
+            "id"
+          ],
+          "is_unique": true,
+          "is_primary": true,
+          "index_type": "btree"
+        },
+        {
+          "name": "audit_logs_tenantId_entityType_idx",
+          "columns": [
+            "tenantId",
+            "entityType"
+          ],
+          "is_unique": false,
+          "is_primary": false,
+          "index_type": "btree"
+        },
+        {
+          "name": "audit_logs_tenantId_idx",
+          "columns": [
+            "tenantId"
+          ],
+          "is_unique": false,
+          "is_primary": false,
+          "index_type": "btree"
+        }
+      ],
+      "rls_enabled": true,
+      "rls_policies": [
+        "audit_logs_tenant_isolation_insert",
+        "audit_logs_tenant_isolation_select"
+      ],
+      "has_tenant_id": true,
+      "created_at": null,
+      "description": null,
+      "sample_row_count": 0,
+      "null_percentage": {
+        "entityId": 0.0,
+        "actorId": 0.0,
+        "ipAddress": 0.0,
+        "userAgent": 0.0,
+        "metadata": 0.0
+      }
+    },
+    {
+      "schema": "public",
+      "name": "order_items",
+      "full_name": "public.order_items",
+      "row_count": -1,
+      "size_bytes": 57344,
+      "size_human": "56.0 KB",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": "gen_random_uuid()",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": true,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "tenantId",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "orderId",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": true,
+          "references_table": "orders",
+          "references_column": "id",
+          "description": null
+        },
+        {
+          "name": "productId",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": true,
+          "references_table": "products",
+          "references_column": "id",
+          "description": null
+        },
+        {
+          "name": "quantity",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "unitPrice",
+          "data_type": "numeric",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 2,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "totalPrice",
+          "data_type": "numeric",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 2,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "order_items_orderId_idx",
+          "columns": [
+            "orderId"
+          ],
+          "is_unique": false,
+          "is_primary": false,
+          "index_type": "btree"
+        },
+        {
+          "name": "order_items_pkey",
+          "columns": [
+            "id"
+          ],
+          "is_unique": true,
+          "is_primary": true,
+          "index_type": "btree"
+        },
+        {
+          "name": "order_items_tenantId_idx",
+          "columns": [
+            "tenantId"
+          ],
+          "is_unique": false,
+          "is_primary": false,
+          "index_type": "btree"
+        }
+      ],
+      "rls_enabled": true,
+      "rls_policies": [
+        "order_items_tenant_isolation_delete",
+        "order_items_tenant_isolation_insert",
+        "order_items_tenant_isolation_select",
+        "order_items_tenant_isolation_update"
+      ],
+      "has_tenant_id": true,
+      "created_at": null,
+      "description": null,
+      "sample_row_count": 0,
+      "null_percentage": {}
+    },
+    {
+      "schema": "public",
+      "name": "orders",
+      "full_name": "public.orders",
+      "row_count": -1,
+      "size_bytes": 65536,
+      "size_human": "64.0 KB",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": "gen_random_uuid()",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": true,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "tenantId",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": true,
+          "references_table": "tenants",
+          "references_column": "id",
+          "description": null
+        },
+        {
+          "name": "userId",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": true,
+          "references_table": "users",
+          "references_column": "id",
+          "description": null
+        },
+        {
+          "name": "status",
+          "data_type": "USER-DEFINED",
+          "is_nullable": false,
+          "default_value": "'PENDING'::\"OrderStatus\"",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "totalAmount",
+          "data_type": "numeric",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 2,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "notes",
+          "data_type": "text",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "createdAt",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default_value": "CURRENT_TIMESTAMP",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "updatedAt",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "orders_pkey",
+          "columns": [
+            "id"
+          ],
+          "is_unique": true,
+          "is_primary": true,
+          "index_type": "btree"
+        },
+        {
+          "name": "orders_tenantId_idx",
+          "columns": [
+            "tenantId"
+          ],
+          "is_unique": false,
+          "is_primary": false,
+          "index_type": "btree"
+        },
+        {
+          "name": "orders_tenantId_userId_idx",
+          "columns": [
+            "tenantId",
+            "userId"
+          ],
+          "is_unique": false,
+          "is_primary": false,
+          "index_type": "btree"
+        }
+      ],
+      "rls_enabled": true,
+      "rls_policies": [
+        "orders_tenant_isolation_delete",
+        "orders_tenant_isolation_insert",
+        "orders_tenant_isolation_select",
+        "orders_tenant_isolation_update"
+      ],
+      "has_tenant_id": true,
+      "created_at": null,
+      "description": null,
+      "sample_row_count": 0,
+      "null_percentage": {
+        "notes": 50.0
+      }
+    },
+    {
+      "schema": "public",
+      "name": "products",
+      "full_name": "public.products",
+      "row_count": -1,
+      "size_bytes": 65536,
+      "size_human": "64.0 KB",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": "gen_random_uuid()",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": true,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "tenantId",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": true,
+          "references_table": "tenants",
+          "references_column": "id",
+          "description": null
+        },
+        {
+          "name": "name",
+          "data_type": "text",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "description",
+          "data_type": "text",
+          "is_nullable": true,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "price",
+          "data_type": "numeric",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 2,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "sku",
+          "data_type": "text",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "stock",
+          "data_type": "integer",
+          "is_nullable": false,
+          "default_value": "0",
+          "max_length": null,
+          "numeric_precision": 32,
+          "numeric_scale": 0,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "isActive",
+          "data_type": "boolean",
+          "is_nullable": false,
+          "default_value": "true",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "createdAt",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default_value": "CURRENT_TIMESTAMP",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "updatedAt",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "products_pkey",
+          "columns": [
+            "id"
+          ],
+          "is_unique": true,
+          "is_primary": true,
+          "index_type": "btree"
+        },
+        {
+          "name": "products_tenantId_idx",
+          "columns": [
+            "tenantId"
+          ],
+          "is_unique": false,
+          "is_primary": false,
+          "index_type": "btree"
+        },
+        {
+          "name": "products_tenantId_sku_key",
+          "columns": [
+            "tenantId",
+            "sku"
+          ],
+          "is_unique": true,
+          "is_primary": false,
+          "index_type": "btree"
+        }
+      ],
+      "rls_enabled": true,
+      "rls_policies": [
+        "products_tenant_isolation_delete",
+        "products_tenant_isolation_insert",
+        "products_tenant_isolation_select",
+        "products_tenant_isolation_update"
+      ],
+      "has_tenant_id": true,
+      "created_at": null,
+      "description": null,
+      "sample_row_count": 0,
+      "null_percentage": {
+        "description": 57.14
+      }
+    },
+    {
+      "schema": "public",
+      "name": "tenants",
+      "full_name": "public.tenants",
+      "row_count": -1,
+      "size_bytes": 81920,
+      "size_human": "80.0 KB",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": "gen_random_uuid()",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": true,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "name",
+          "data_type": "text",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "slug",
+          "data_type": "text",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "plan",
+          "data_type": "USER-DEFINED",
+          "is_nullable": false,
+          "default_value": "'STARTER'::\"Plan\"",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "isActive",
+          "data_type": "boolean",
+          "is_nullable": false,
+          "default_value": "true",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "apiKey",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": "gen_random_uuid()",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "createdAt",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default_value": "CURRENT_TIMESTAMP",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "updatedAt",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "tenants_apiKey_key",
+          "columns": [
+            "apiKey"
+          ],
+          "is_unique": true,
+          "is_primary": false,
+          "index_type": "btree"
+        },
+        {
+          "name": "tenants_name_key",
+          "columns": [
+            "name"
+          ],
+          "is_unique": true,
+          "is_primary": false,
+          "index_type": "btree"
+        },
+        {
+          "name": "tenants_pkey",
+          "columns": [
+            "id"
+          ],
+          "is_unique": true,
+          "is_primary": true,
+          "index_type": "btree"
+        },
+        {
+          "name": "tenants_slug_key",
+          "columns": [
+            "slug"
+          ],
+          "is_unique": true,
+          "is_primary": false,
+          "index_type": "btree"
+        }
+      ],
+      "rls_enabled": false,
+      "rls_policies": [],
+      "has_tenant_id": false,
+      "created_at": null,
+      "description": null,
+      "sample_row_count": 0,
+      "null_percentage": {}
+    },
+    {
+      "schema": "public",
+      "name": "users",
+      "full_name": "public.users",
+      "row_count": -1,
+      "size_bytes": 65536,
+      "size_human": "64.0 KB",
+      "columns": [
+        {
+          "name": "id",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": "gen_random_uuid()",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": true,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "tenantId",
+          "data_type": "uuid",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": true,
+          "references_table": "tenants",
+          "references_column": "id",
+          "description": null
+        },
+        {
+          "name": "email",
+          "data_type": "text",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "name",
+          "data_type": "text",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "role",
+          "data_type": "USER-DEFINED",
+          "is_nullable": false,
+          "default_value": "'MEMBER'::\"UserRole\"",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "passwordHash",
+          "data_type": "text",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "isActive",
+          "data_type": "boolean",
+          "is_nullable": false,
+          "default_value": "true",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "createdAt",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default_value": "CURRENT_TIMESTAMP",
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        },
+        {
+          "name": "updatedAt",
+          "data_type": "timestamp without time zone",
+          "is_nullable": false,
+          "default_value": null,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "is_primary_key": false,
+          "is_foreign_key": false,
+          "references_table": null,
+          "references_column": null,
+          "description": null
+        }
+      ],
+      "indexes": [
+        {
+          "name": "users_pkey",
+          "columns": [
+            "id"
+          ],
+          "is_unique": true,
+          "is_primary": true,
+          "index_type": "btree"
+        },
+        {
+          "name": "users_tenantId_email_key",
+          "columns": [
+            "tenantId",
+            "email"
+          ],
+          "is_unique": true,
+          "is_primary": false,
+          "index_type": "btree"
+        },
+        {
+          "name": "users_tenantId_idx",
+          "columns": [
+            "tenantId"
+          ],
+          "is_unique": false,
+          "is_primary": false,
+          "index_type": "btree"
+        }
+      ],
+      "rls_enabled": true,
+      "rls_policies": [
+        "users_tenant_isolation_delete",
+        "users_tenant_isolation_insert",
+        "users_tenant_isolation_select",
+        "users_tenant_isolation_update"
+      ],
+      "has_tenant_id": true,
+      "created_at": null,
+      "description": null,
+      "sample_row_count": 0,
+      "null_percentage": {}
+    }
+  ],
+  "extracted_at": "2026-06-02T01:13:04.945033+00:00",
+  "extraction_ms": 457.83,
+  "quality_score": 81.4
+}

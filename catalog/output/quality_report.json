@@ -1,0 +1,136 @@
+{
+  "database": "multitenant_db",
+  "generated_at": "2026-06-02T01:13:04.945033+00:00",
+  "overall_score": 81.4,
+  "checks": {
+    "rls_coverage": {
+      "score": 71.4,
+      "description": "Percentage of tables with Row-Level Security enabled",
+      "tables_with_rls": [
+        "audit_logs",
+        "order_items",
+        "orders",
+        "products",
+        "users"
+      ],
+      "tables_without_rls": [
+        "_prisma_migrations",
+        "tenants"
+      ]
+    },
+    "tenant_isolation": {
+      "score": 71.4,
+      "description": "Percentage of tables with tenant_id isolation column",
+      "isolated_tables": [
+        "audit_logs",
+        "order_items",
+        "orders",
+        "products",
+        "users"
+      ],
+      "non_isolated_tables": [
+        "_prisma_migrations",
+        "tenants"
+      ]
+    },
+    "index_coverage": {
+      "score": 100.0,
+      "description": "Percentage of tables with at least one index",
+      "indexed_tables": [
+        "_prisma_migrations",
+        "audit_logs",
+        "order_items",
+        "orders",
+        "products",
+        "tenants",
+        "users"
+      ],
+      "unindexed_tables": []
+    },
+    "null_analysis": {
+      "_prisma_migrations": {
+        "finished_at": 0.0,
+        "logs": 100.0,
+        "rolled_back_at": 100.0
+      },
+      "audit_logs": {
+        "entityId": 0.0,
+        "actorId": 0.0,
+        "ipAddress": 0.0,
+        "userAgent": 0.0,
+        "metadata": 0.0
+      },
+      "orders": {
+        "notes": 50.0
+      },
+      "products": {
+        "description": 57.14
+      }
+    }
+  },
+  "table_summary": [
+    {
+      "table": "_prisma_migrations",
+      "rows": -1,
+      "size": "32.0 KB",
+      "rls": false,
+      "tenant_scoped": false,
+      "index_count": 1,
+      "column_count": 8
+    },
+    {
+      "table": "audit_logs",
+      "rows": -1,
+      "size": "32.0 KB",
+      "rls": true,
+      "tenant_scoped": true,
+      "index_count": 3,
+      "column_count": 10
+    },
+    {
+      "table": "order_items",
+      "rows": -1,
+      "size": "56.0 KB",
+      "rls": true,
+      "tenant_scoped": true,
+      "index_count": 3,
+      "column_count": 7
+    },
+    {
+      "table": "orders",
+      "rows": -1,
+      "size": "64.0 KB",
+      "rls": true,
+      "tenant_scoped": true,
+      "index_count": 3,
+      "column_count": 8
+    },
+    {
+      "table": "products",
+      "rows": -1,
+      "size": "64.0 KB",
+      "rls": true,
+      "tenant_scoped": true,
+      "index_count": 3,
+      "column_count": 10
+    },
+    {
+      "table": "tenants",
+      "rows": -1,
+      "size": "80.0 KB",
+      "rls": false,
+      "tenant_scoped": false,
+      "index_count": 4,
+      "column_count": 8
+    },
+    {
+      "table": "users",
+      "rows": -1,
+      "size": "64.0 KB",
+      "rls": true,
+      "tenant_scoped": true,
+      "index_count": 3,
+      "column_count": 9
+    }
+  ]
+}
