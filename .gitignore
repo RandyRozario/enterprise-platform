@@ -1,0 +1,16 @@
+cat > D:\Migration\enterprise-platform\.gitignore << 'EOF'
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+
+# Catalog outputs
+catalog/output/
+
+# Python
+__pycache__/
+*.pyc
+.env
+EOF
