@@ -1,0 +1,820 @@
+# =============================================================================
+# Enterprise Data Platform Core — Kubernetes Deployment Manifest
+# File: kubernetes/deployment.yaml
+# =============================================================================
+# Deploys the complete 10-project platform as a Kubernetes workload with:
+#   - Strict resource CPU/Memory limits
+#   - Liveness and readiness health check probes
+#   - Environment variable injection from ConfigMaps and Secrets
+#   - PodDisruptionBudgets for zero-downtime rolling updates
+#   - HorizontalPodAutoscalers for demand-driven scaling
+#   - NetworkPolicies for inter-service traffic isolation
+# =============================================================================
+
+---
+# =============================================================================
+# NAMESPACE
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: enterprise-platform
+  labels:
+    app.kubernetes.io/managed-by: kubectl
+    environment: production
+    team: platform-engineering
+
+---
+# =============================================================================
+# CONFIGMAP — Non-sensitive platform configuration
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: enterprise-platform
+  labels:
+    app.kubernetes.io/part-of: enterprise-platform
+data:
+  NODE_ENV:                    "production"
+  PORT:                        "3000"
+  LOG_LEVEL:                   "info"
+  KAFKA_TOPIC_PREFIX:          "edp"
+  REDIS_TTL_SECONDS:           "3600"
+  DB_POOL_MIN:                 "2"
+  DB_POOL_MAX:                 "10"
+  DB_POOL_IDLE_TIMEOUT:        "30000"
+  SIMILARITY_THRESHOLD:        "0.35"
+  RAG_TOP_K:                   "5"
+  EMBEDDING_MODEL:             "sentence-transformers/all-MiniLM-L6-v2"
+  CHROMA_COLLECTION:           "enterprise_knowledge_base"
+  METRICS_PORT:                "9090"
+  HEALTH_CHECK_PATH:           "/health"
+  SWAGGER_ENABLED:             "false"
+  RATE_LIMIT_WINDOW_MS:        "60000"
+  RATE_LIMIT_MAX_REQUESTS:     "1000"
+  CORS_ORIGINS:                "https://app.enterprise.local"
+
+---
+# =============================================================================
+# SECRET — Sensitive credentials (base64 encoded in production)
+# In production: use Sealed Secrets or External Secrets Operator
+# =============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: platform-secrets
+  namespace: enterprise-platform
+  labels:
+    app.kubernetes.io/part-of: enterprise-platform
+  annotations:
+    kubernetes.io/description: "Platform sensitive credentials — rotate every 90 days"
+type: Opaque
+stringData:
+  DATABASE_URL:       "postgresql://platform_admin:PlatformSecure2024!!@postgres-service:5432/platform_db"
+  REDIS_URL:          "redis://:RedisSecure2024!!@redis-service:6379"
+  KAFKA_BROKERS:      "kafka-service:9092"
+  JWT_SECRET:         "jwt-secret-minimum-32-chars-long-here"
+  JWT_REFRESH_SECRET: "jwt-refresh-secret-minimum-32-chars"
+  GROQ_API_KEY:       "your-groq-api-key-here"
+
+---
+# =============================================================================
+# SERVICE ACCOUNT
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: platform-service-account
+  namespace: enterprise-platform
+  labels:
+    app.kubernetes.io/part-of: enterprise-platform
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT_ID:role/edp-core-ecs-task"
+
+---
+# =============================================================================
+# DEPLOYMENT — MULTI-TENANT SAAS API (Project 10)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multitenant-api
+  namespace: enterprise-platform
+  labels:
+    app:                        multitenant-api
+    app.kubernetes.io/name:     multitenant-api
+    app.kubernetes.io/version:  "1.0.0"
+    app.kubernetes.io/part-of:  enterprise-platform
+    tier:                       backend
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: multitenant-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge:       1
+      maxUnavailable: 0     # Zero-downtime rolling update
+  template:
+    metadata:
+      labels:
+        app:     multitenant-api
+        version: "1.0.0"
+        tier:    backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port:   "9090"
+        prometheus.io/path:   "/metrics"
+    spec:
+      serviceAccountName: platform-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser:    1001
+        runAsGroup:   1001
+        fsGroup:      1001
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 60
+
+      # Spread across nodes for HA
+      topologySpreadConstraints:
+        - maxSkew:           1
+          topologyKey:       kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: multitenant-api
+
+      containers:
+        - name: multitenant-api
+          image: randyrozario/multitenant-saas:latest
+          imagePullPolicy: Always
+          ports:
+            - name:          http
+              containerPort: 3000
+              protocol:      TCP
+            - name:          metrics
+              containerPort: 9090
+              protocol:      TCP
+
+          # ── Resource Limits (hard caps) ───────────────────────────────────
+          resources:
+            requests:
+              cpu:    "250m"
+              memory: "256Mi"
+            limits:
+              cpu:    "1000m"     # 1 vCPU hard cap
+              memory: "512Mi"     # 512MB hard cap — OOM kill above this
+
+          # ── Environment Variables ─────────────────────────────────────────
+          envFrom:
+            - configMapRef:
+                name: platform-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key:  DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key:  REDIS_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key:  JWT_SECRET
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+          # ── Liveness Probe — restart if deadlocked ────────────────────────
+          livenessProbe:
+            httpGet:
+              path:   /health/live
+              port:   http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds:       20
+            timeoutSeconds:      5
+            failureThreshold:    3
+            successThreshold:    1
+
+          # ── Readiness Probe — remove from LB if not ready ─────────────────
+          readinessProbe:
+            httpGet:
+              path:   /health/ready
+              port:   http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds:       10
+            timeoutSeconds:      3
+            failureThreshold:    3
+            successThreshold:    1
+
+          # ── Startup Probe — extra time for cold start ─────────────────────
+          startupProbe:
+            httpGet:
+              path:   /health/live
+              port:   http
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds:       5
+            timeoutSeconds:      3
+            failureThreshold:    12    # 60s max startup time
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem:   true
+            capabilities:
+              drop: ["ALL"]
+
+          volumeMounts:
+            - name:      tmp-dir
+              mountPath: /tmp
+            - name:      app-logs
+              mountPath: /app/logs
+
+      volumes:
+        - name: tmp-dir
+          emptyDir: {}
+        - name: app-logs
+          emptyDir: {}
+
+---
+# =============================================================================
+# DEPLOYMENT — RAG CONTEXT ENGINE (Project 9)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-engine
+  namespace: enterprise-platform
+  labels:
+    app:                       rag-engine
+    app.kubernetes.io/name:    rag-engine
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/part-of: enterprise-platform
+    tier:                      ai
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: rag-engine
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge:       1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app:  rag-engine
+        tier: ai
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port:   "9090"
+        prometheus.io/path:   "/metrics"
+    spec:
+      serviceAccountName: platform-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser:    1001
+        runAsGroup:   1001
+        fsGroup:      1001
+      terminationGracePeriodSeconds: 90   # Longer for model cleanup
+
+      containers:
+        - name: rag-engine
+          image: randyrozario/rag-engine:latest
+          imagePullPolicy: Always
+          ports:
+            - name:          http
+              containerPort: 8080
+              protocol:      TCP
+
+          resources:
+            requests:
+              cpu:    "500m"
+              memory: "1Gi"       # Embedding model needs memory
+            limits:
+              cpu:    "2000m"     # 2 vCPU for embedding inference
+              memory: "2Gi"       # 2GB hard cap
+
+          envFrom:
+            - configMapRef:
+                name: platform-config
+          env:
+            - name: CHROMA_PERSIST_DIR
+              value: "/data/chroma"
+            - name: DATA_DIR
+              value: "/data/raw"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60    # Model download takes time
+            periodSeconds:       30
+            timeoutSeconds:      10
+            failureThreshold:    3
+
+          readinessProbe:
+            httpGet:
+              path: /api/stats
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds:       15
+            timeoutSeconds:      5
+            failureThreshold:    3
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds:       10
+            timeoutSeconds:      5
+            failureThreshold:    18   # 180s for model download
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem:   false   # ChromaDB needs write access
+            capabilities:
+              drop: ["ALL"]
+
+          volumeMounts:
+            - name:      rag-data
+              mountPath: /data
+
+      volumes:
+        - name: rag-data
+          persistentVolumeClaim:
+            claimName: rag-engine-pvc
+
+---
+# =============================================================================
+# DEPLOYMENT — OBSERVABILITY STACK (Project 6)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: observability-stack
+  namespace: enterprise-platform
+  labels:
+    app:                       observability-stack
+    app.kubernetes.io/name:    observability-stack
+    app.kubernetes.io/part-of: enterprise-platform
+    tier:                      observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: observability-stack
+  template:
+    metadata:
+      labels:
+        app:  observability-stack
+        tier: observability
+    spec:
+      serviceAccountName: platform-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser:    65534   # nobody user for Prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.53.0
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--storage.tsdb.retention.time=30d"
+            - "--web.enable-lifecycle"
+            - "--web.enable-admin-api"
+          ports:
+            - name:          prometheus
+              containerPort: 9090
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "256Mi"
+            limits:
+              cpu:    "500m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: prometheus
+            initialDelaySeconds: 30
+            periodSeconds:       15
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: prometheus
+            initialDelaySeconds: 5
+            periodSeconds:       5
+          volumeMounts:
+            - name:      prometheus-config
+              mountPath: /etc/prometheus
+            - name:      prometheus-data
+              mountPath: /prometheus
+
+        - name: grafana
+          image: grafana/grafana:11.1.0
+          ports:
+            - name:          grafana
+              containerPort: 3000
+          env:
+            - name:  GF_SECURITY_ADMIN_PASSWORD
+              value: "admin"
+            - name:  GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            - name:  GF_INSTALL_PLUGINS
+              value: "grafana-piechart-panel"
+          resources:
+            requests:
+              cpu:    "100m"
+              memory: "128Mi"
+            limits:
+              cpu:    "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: grafana
+            initialDelaySeconds: 30
+            periodSeconds:       10
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: grafana
+            initialDelaySeconds: 10
+            periodSeconds:       5
+          volumeMounts:
+            - name:      grafana-data
+              mountPath: /var/lib/grafana
+
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+        - name: prometheus-data
+          emptyDir: {}
+        - name: grafana-data
+          emptyDir: {}
+
+---
+# =============================================================================
+# DEPLOYMENT — AI AGENT FLEET (Project 1)
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-agent-fleet
+  namespace: enterprise-platform
+  labels:
+    app:                       ai-agent-fleet
+    app.kubernetes.io/name:    ai-agent-fleet
+    app.kubernetes.io/part-of: enterprise-platform
+    tier:                      ai
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-agent-fleet
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge:       1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app:  ai-agent-fleet
+        tier: ai
+    spec:
+      serviceAccountName: platform-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser:    1001
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: ai-agent-fleet
+          image: randyrozario/ai-agent-fleet:latest
+          ports:
+            - name:          http
+              containerPort: 8000
+          resources:
+            requests:
+              cpu:    "500m"
+              memory: "512Mi"
+            limits:
+              cpu:    "2000m"
+              memory: "2Gi"
+          envFrom:
+            - configMapRef:
+                name: platform-config
+          env:
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key:  GROQ_API_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key:  DATABASE_URL
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds:       20
+            failureThreshold:    3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds:       10
+            failureThreshold:    3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+
+---
+# =============================================================================
+# SERVICES
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: multitenant-api-service
+  namespace: enterprise-platform
+  labels:
+    app: multitenant-api
+spec:
+  selector:
+    app: multitenant-api
+  ports:
+    - name:       http
+      port:       3000
+      targetPort: http
+      protocol:   TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-engine-service
+  namespace: enterprise-platform
+  labels:
+    app: rag-engine
+spec:
+  selector:
+    app: rag-engine
+  ports:
+    - name:       http
+      port:       8080
+      targetPort: http
+      protocol:   TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-agent-service
+  namespace: enterprise-platform
+  labels:
+    app: ai-agent-fleet
+spec:
+  selector:
+    app: ai-agent-fleet
+  ports:
+    - name:       http
+      port:       8000
+      targetPort: http
+      protocol:   TCP
+  type: ClusterIP
+
+---
+# =============================================================================
+# HORIZONTAL POD AUTOSCALERS
+# =============================================================================
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: multitenant-api-hpa
+  namespace: enterprise-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind:       Deployment
+    name:       multitenant-api
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type:               Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type:               Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type:          Pods
+          value:         3
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300   # 5min cooldown before scale-down
+      policies:
+        - type:          Pods
+          value:         1
+          periodSeconds: 120
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rag-engine-hpa
+  namespace: enterprise-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind:       Deployment
+    name:       rag-engine
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type:               Utilization
+          averageUtilization: 75
+
+---
+# =============================================================================
+# POD DISRUPTION BUDGETS — Zero-downtime maintenance
+# =============================================================================
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: multitenant-api-pdb
+  namespace: enterprise-platform
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: multitenant-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rag-engine-pdb
+  namespace: enterprise-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: rag-engine
+
+---
+# =============================================================================
+# PERSISTENT VOLUME CLAIM — RAG Engine data
+# =============================================================================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rag-engine-pvc
+  namespace: enterprise-platform
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# =============================================================================
+# NETWORK POLICIES — Inter-service traffic isolation
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: multitenant-api-netpol
+  namespace: enterprise-platform
+spec:
+  podSelector:
+    matchLabels:
+      app: multitenant-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port:     3000
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: enterprise-platform
+      ports:
+        - protocol: TCP
+          port:     3000
+  egress:
+    - to:
+        - podSelector: {}   # All pods in namespace
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.0.0/16   # Block metadata service
+      ports:
+        - protocol: TCP
+          port:     443
+        - protocol: TCP
+          port:     5432
+        - protocol: TCP
+          port:     6379
+
+---
+# =============================================================================
+# INGRESS — External traffic routing
+# =============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: platform-ingress
+  namespace: enterprise-platform
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target:      /
+    nginx.ingress.kubernetes.io/ssl-redirect:        "true"
+    nginx.ingress.kubernetes.io/rate-limit:          "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window:   "1m"
+    nginx.ingress.kubernetes.io/proxy-body-size:     "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout:  "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout:  "60"
+    cert-manager.io/cluster-issuer:                  "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.enterprise.local
+        - rag.enterprise.local
+      secretName: platform-tls
+  rules:
+    - host: api.enterprise.local
+      http:
+        paths:
+          - path:     /
+            pathType: Prefix
+            backend:
+              service:
+                name: multitenant-api-service
+                port:
+                  number: 3000
+    - host: rag.enterprise.local
+      http:
+        paths:
+          - path:     /
+            pathType: Prefix
+            backend:
+              service:
+                name: rag-engine-service
+                port:
+                  number: 8080
